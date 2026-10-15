@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E7C66">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Питомцы">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Тони и Эйрин</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Pixelify+Sans:wght@500;700&display=swap">
+<style>
+/* Layout: one-column phone app, pet switcher on top, LCD pet screen, action pad, then today; bottom tab bar */
+:root{
+  --bg:#ECEFF3; --card:#FFFFFF; --ink:#1C2330; --muted:#677084; --line:#DCE1E8;
+  --accent:#0E7C66; --accent-ink:#FFFFFF; --warn:#C2410C; --warn-bg:#FDEDE4; --ok:#15803D;
+  --lcd:#C9DDB9; --lcd-grid:rgba(40,60,30,.07); --lcd-ink:#1F2A1B; --px-ink:#2A2420;
+  --toni:#E07B2E; --eirin:#3B74D1;
+  --f-display:"Pixelify Sans", ui-monospace, "Courier New", monospace;
+  --f-body:"Golos Text", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11151B; --card:#1A2029; --ink:#E7EBF0; --muted:#97A0B0; --line:#2A323D;
+  --accent:#2FB394; --accent-ink:#06261F; --warn:#FB923C; --warn-bg:#3A2216; --ok:#4ADE80;
+  --lcd:#2C3B2A; --lcd-grid:rgba(200,230,180,.05); --lcd-ink:#D6E8C8; --px-ink:#141210;
+  --toni:#F0904A; --eirin:#6D9BEA; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11151B; --card:#1A2029; --ink:#E7EBF0; --muted:#97A0B0; --line:#2A323D;
+  --accent:#2FB394; --accent-ink:#06261F; --warn:#FB923C; --warn-bg:#3A2216; --ok:#4ADE80;
+  --lcd:#2C3B2A; --lcd-grid:rgba(200,230,180,.05); --lcd-ink:#D6E8C8; --px-ink:#141210;
+  --toni:#F0904A; --eirin:#6D9BEA; color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;-webkit-tap-highlight-color:transparent}
+.app{max-width:520px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px calc(92px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+button svg{pointer-events:none}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{margin:0;text-wrap:balance}
+.muted{color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+
+/* top */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font-family:var(--f-display);font-size:22px;letter-spacing:.02em}
+.sync{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+.sync.on i{background:var(--ok)}
+.sync{display:none}
+.switch{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.switch button{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;align-items:center;gap:10px;text-align:left;min-width:0}
+.switch button[aria-pressed="true"]{border-color:var(--pc);box-shadow:inset 0 0 0 1px var(--pc)}
+.switch .av{width:34px;height:34px;flex:none;border-radius:8px;background:var(--lcd);display:grid;place-items:center}
+.switch .av svg{width:26px;height:26px}
+.switch b{display:block;font-weight:600}
+.switch small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{display:inline-block;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--warn);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center;margin-left:4px}
+
+/* device */
+.device{background:var(--card);border-radius:22px;padding:14px;border:1px solid var(--line)}
+.lcd{position:relative;background:var(--lcd);border-radius:12px;height:230px;overflow:hidden;
+  background-image:linear-gradient(var(--lcd-grid) 1px,transparent 1px),linear-gradient(90deg,var(--lcd-grid) 1px,transparent 1px);background-size:6px 6px;
+  box-shadow:inset 0 2px 6px rgba(0,0,0,.18)}
+.lcd .sprite{position:absolute;left:50%;bottom:18px;width:150px;height:150px;transform:translateX(-50%);animation:bob 1.2s steps(1) infinite}
+.lcd .sprite svg{width:100%;height:100%;display:block;shape-rendering:crispEdges}
+@keyframes bob{0%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-5px)}}
+.lcd.sleep .sprite{animation:none}
+.bubble{position:absolute;top:12px;left:50%;transform:translateX(-50%);max-width:86%;background:var(--card);color:var(--ink);font-family:var(--f-display);font-size:15px;padding:6px 12px;border-radius:10px;border:2px solid var(--px-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bubble:after{content:"";position:absolute;left:50%;bottom:-8px;width:10px;height:10px;background:var(--card);border-right:2px solid var(--px-ink);border-bottom:2px solid var(--px-ink);transform:translateX(-50%) rotate(45deg)}
+.lcd .meta{position:absolute;left:10px;bottom:8px;right:10px;display:flex;justify-content:space-between;font-family:var(--f-display);font-size:12px;color:var(--lcd-ink);opacity:.8}
+.zzz{position:absolute;right:22%;top:70px;font-family:var(--f-display);color:var(--lcd-ink);font-size:20px;animation:zz 2s steps(4) infinite}
+@keyframes zz{0%{transform:translate(0,0);opacity:1}100%{transform:translate(10px,-24px);opacity:0}}
+.heart{position:absolute;bottom:120px;width:20px;height:18px;animation:rise 1.4s ease-out forwards;pointer-events:none}
+@keyframes rise{from{transform:translateY(0);opacity:1}to{transform:translateY(-90px);opacity:0}}
+@media (prefers-reduced-motion:reduce){.lcd .sprite,.zzz,.heart{animation:none}}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.stat{min-width:0}
+.stat span{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.bar{display:grid;grid-template-columns:repeat(10,1fr);gap:2px;margin-top:4px}
+.bar i{height:9px;background:var(--line);border-radius:1px}
+.bar i.on{background:var(--pc)}
+.bar.low i.on{background:var(--warn)}
+
+.pad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+.pad button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:12px;background:var(--bg);font-size:12.5px;font-weight:500;min-width:0}
+.pad button svg{width:26px;height:26px}
+.pad button.main{background:var(--accent);color:var(--accent-ink)}
+.pad button:active{transform:scale(.96)}
+
+/* cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px}
+.card h2{font-size:16px;font-weight:600;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.card h2 small{font-weight:400;font-size:13px;color:var(--muted)}
+.meter{height:10px;border-radius:5px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--pc);border-radius:5px;transition:width .3s}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.feedline{font-size:22px;font-weight:700}
+.feedline small{font-size:14px;font-weight:400;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1.5px solid var(--line);border-radius:999px;padding:5px 11px;font-size:13px;background:var(--card)}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+
+.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.log li{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.log li:first-child{border-top:0}
+.log .ic{width:30px;height:30px;border-radius:8px;background:var(--bg);display:grid;place-items:center;flex:none}
+.log .ic svg{width:18px;height:18px}
+.log .t{flex:1;min-width:0}
+.log time{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+.x{width:30px;height:30px;border-radius:8px;color:var(--muted);display:grid;place-items:center}
+.x svg{width:16px;height:16px}
+.empty{color:var(--muted);font-size:14px;padding:4px 0}
+
+/* tasks */
+.tasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.task{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.tasks .task:first-child{border-top:0}
+.check{width:28px;height:28px;flex:none;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;color:transparent}
+.check:active,.check.done{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.check svg{width:16px;height:16px}
+.task .body{flex:1;min-width:0;text-align:left}
+.task .body b{display:block;font-weight:500;overflow-wrap:anywhere}
+.task .body small{color:var(--muted);font-size:13px}
+.task.over .body small{color:var(--warn);font-weight:600}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:6px;color:#fff;background:var(--pc);margin-right:4px;vertical-align:1px}
+.sec{font-size:11px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:var(--muted);margin-top:4px}
+.sec.warn{color:var(--warn)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 16px;border-radius:12px;background:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.ghost{background:var(--bg);color:var(--ink)}
+.btn.danger{background:var(--warn-bg);color:var(--warn)}
+.btn svg{width:18px;height:18px}
+.full{width:100%}
+
+/* forms */
+label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted);font-weight:500}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-width:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stepper{display:grid;grid-template-columns:48px 1fr 48px;gap:8px;align-items:center}
+.stepper button{height:48px;border-radius:12px;background:var(--bg);font-size:22px;font-weight:600}
+.stepper input{text-align:center;font-size:24px;font-weight:700;height:48px}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatches button{width:34px;height:34px;border-radius:9px;border:2px solid var(--line)}
+.swatches button[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--card) inset}
+
+/* sheet: shown inline in place of the screen */
+.sheet{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.sheet .in{display:flex;flex-direction:column;gap:14px}
+.sheet h3{font-size:18px}
+.lcd .sprite{cursor:pointer}
+
+/* nav */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--card);border-top:1px solid var(--line);
+  padding:6px max(16px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.nav .in{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr)}
+.nav button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px;font-size:12px;color:var(--muted);font-weight:500}
+.nav button svg{width:24px;height:24px}
+.nav button[aria-current="page"]{color:var(--accent)}
+.toast{margin-top:12px;background:var(--ink);color:var(--bg);border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;gap:14px;align-items:center;font-size:14px}
+.toast:empty{display:none}
+.gain{font-family:var(--f-display);color:var(--pc);font-size:12px;margin-left:4px}
+.toast button{color:var(--bg);font-weight:700;text-decoration:underline;flex:none}
+.note{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+
+<div class="app" id="app"></div>
+<nav class="nav"><div class="in">
+  <button data-tab="pet" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="10" r="2"/><circle cx="10" cy="6" r="2"/><circle cx="14" cy="6" r="2"/><circle cx="18" cy="10" r="2"/><path d="M12 12c-3 0-6 4-6 6.5 0 1.5 1.5 2 3 1.5 1-.3 2-.5 3-.5s2 .2 3 .5c1.5.5 3 0 3-1.5C18 16 15 12 12 12z"/></svg>Питомцы</button>
+  <button data-tab="tasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M9 15l2 2 4-4"/></svg><span>Дела<span id="navdot"></span></span></button>
+  <button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Настройки</button>
+</div></nav>
+<div id="layer"></div>
+
+<div id="errbar" hidden style="position:sticky;top:0;z-index:50;background:#B91C1C;color:#fff;font-size:13px;padding:8px 16px"></div>
+<script>
+(function(){var n=0;function show(m){var b=document.getElementById('errbar');if(!b||n>3)return;n++;b.hidden=false;b.textContent+=(b.textContent?' | ':'')+'Ошибка: '+m;}
+window.addEventListener('error',function(e){show((e.message||'?')+' @'+(e.lineno||''));});
+window.addEventListener('unhandledrejection',function(e){var r=e.reason;show('promise: '+(r&&(r.code||r.message)||r));});})();
+</script>
+<script>
+(function(){
+const PETS = ['toni','eirin'];
+const DAY = 864e5, H = 36e5, MIN = 6e4;
+const STORE_KEY = 'toni-eirin-v1';
+
+const DEFAULTS = {
+  v:1,
+  pets:{
+    toni:{name:'Тони', kind:'cat', fur:'#E8964A', feedsPerDay:2, gramsPerDay:60, food:'', walksPerDay:0},
+    eirin:{name:'Эйрин', kind:'dog', fur:'#C8A27A', feedsPerDay:2, gramsPerDay:300, food:'', walksPerDay:2}
+  },
+  logs:[], tasks:[]
+};
+const FURS = ['#E8964A','#9AA0A8','#3A3A3E','#F2EEE8','#C8A27A','#7A5236','#E9D3A6'];
+
+/* ---------- icons ---------- */
+const S = (d)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const IC = {
+  feed:S('<path d="M3 12h18a9 7 0 0 1-18 0z"/><path d="M8 9c0-1.5 1.2-2 1.2-3.5M12 9c0-1.5 1.2-2 1.2-3.5M16 9c0-1.5 1.2-2 1.2-3.5"/>'),
+  walk:S('<circle cx="6" cy="10" r="2"/><circle cx="10" cy="6" r="2"/><circle cx="14" cy="6" r="2"/><circle cx="18" cy="10" r="2"/><path d="M12 12c-3 0-6 4-6 6.5 0 1.5 1.5 2 3 1.5 1-.3 2-.5 3-.5s2 .2 3 .5c1.5.5 3 0 3-1.5C18 16 15 12 12 12z"/>'),
+  play:S('<circle cx="12" cy="12" r="9"/><path d="M5 7c4 1 7 5 7 14M19 7c-4 1-7 5-7 14M3.5 12h17"/>'),
+  water:S('<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/>'),
+  litter:S('<path d="M3 10h18l-2 9H5z"/><path d="M8 10l1-4h6l1 4"/>'),
+  x:S('<path d="M6 6l12 12M18 6L6 18"/>'),
+  check:S('<path d="M5 12l5 5 9-10"/>'),
+  plus:S('<path d="M12 5v14M5 12h14"/>')
+};
+const LABEL = {feed:'Покормил', walk:'Погулял', play:'Поиграл', water:'Вода', litter:'Лоток'};
+const LOGTEXT = {feed:'Покормил', walk:'Прогулка', play:'Поиграли', water:'Свежая вода', litter:'Убрал лоток', pet:'Погладил', task:'Дело сделано'};
+
+/* ---------- pixel sprites ---------- */
+const CAT = [
+"................",
+".oo..........oo.",
+".ofo........ofo.",
+".offo......offo.",
+".offfoooooooffo.",
+".offffffffffffo.",
+"offffffffffffffo",
+"offffffffffffffo",
+"offffffffffffffo",
+"offffllllllffffo",
+".offfllllllfffo.",
+"..offffffffffo..",
+"...offllllffo.o.",
+"..offllllllffofo",
+"..offllllllffffo",
+"..oooooooooooooo"];
+const DOG = [
+"................",
+"....oooooooo....",
+"...offffffffo...",
+".ooffffffffffoo.",
+"oddoffffffffoddo",
+"oddffffffffffddo",
+"oddffffffffffddo",
+"oddffffffffffddo",
+".odffffffffffdo.",
+"..offllllllffo..",
+"..ofllllllllfo..",
+"...offllllffo...",
+"..offffffffffo..",
+"..offllllllffo..",
+"..offo....offo..",
+"..oooo....oooo.."];
+function shade(hex, amt){ // amt -1..1
+  const n = parseInt(hex.slice(1),16); let r=n>>16,g=(n>>8)&255,b=n&255;
+  const t = amt<0?0:255, p=Math.abs(amt);
+  r=Math.round(r+(t-r)*p); g=Math.round(g+(t-g)*p); b=Math.round(b+(t-b)*p);
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+function spriteSVG(pet, face){
+  const base = (pet.kind==='dog'?DOG:CAT).map(r=>r.split(''));
+  const set=(pts,c)=>pts.forEach(([x,y])=>{base[y][x]=c});
+  const E = face.eyes, M = face.mouth;
+  if(E==='happy'){ set([[3,8],[4,7],[5,7],[6,8],[9,8],[10,7],[11,7],[12,8]],'o'); }
+  else if(E==='closed'){ set([[4,8],[5,8],[10,8],[11,8]],'o'); }
+  else if(E==='sad'){ set([[4,8],[5,8],[5,7],[10,8],[11,8],[10,7]],'o'); }
+  else { set([[5,7],[4,8],[5,8],[11,7],[10,8],[11,8]],'o'); set([[4,7],[10,7]],'w'); }
+  set([[7,9],[8,9]], pet.kind==='dog'?'o':'p');
+  if(M==='happy') set([[6,10],[7,11],[8,11],[9,10]],'o');
+  else if(M==='sad') set([[6,11],[7,10],[8,10],[9,11]],'o');
+  else set([[7,11],[8,11]],'o');
+  if(face.blush) set([[3,9],[12,9]],'p');
+  if(face.tear) set([[4,9]],'b');
+  const col = {o:'var(--px-ink)', f:pet.fur, l:shade(pet.fur,.55), d:shade(pet.fur,-.35), w:'#FFFFFF', p:'#F08A9A', b:'#5AA9F0'};
+  let out='';
+  base.forEach((row,y)=>row.forEach((c,x)=>{ if(c!=='.') out+=`<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${col[c]}"/>`; }));
+  return `<svg viewBox="0 0 16 16" aria-hidden="true">${out}</svg>`;
+}
+const HEART = '<svg viewBox="0 0 7 6" shape-rendering="crispEdges"><path fill="#E5484D" d="M1 0h2v1h1V0h2v1h1v2H6v1H5v1H4v1H3V5H2V4H1V3H0V1h1z"/></svg>';
+
+/* ---------- state ---------- */
+const clone = o=>JSON.parse(JSON.stringify(o));
+function normalize(s){
+  const d = clone(DEFAULTS);
+  if(!s || typeof s!=='object') return d;
+  const out = {v:1, pets:{}, logs:Array.isArray(s.logs)?s.logs:[], tasks:Array.isArray(s.tasks)?s.tasks:[]};
+  PETS.forEach(k=>out.pets[k]=Object.assign({}, d.pets[k], (s.pets||{})[k]||{}));
+  return out;
+}
+function loadLocal(){ try{ const t=localStorage.getItem(STORE_KEY); return t?JSON.parse(t):null; }catch(e){ return null; } }
+function saveLocal(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
+let state = normalize(loadLocal());
+let ui = {tab:'pet', pet:'toni'};
+try{ const u=JSON.parse(localStorage.getItem(STORE_KEY+'-ui')||'null'); if(u) ui=Object.assign(ui,u); }catch(e){}
+const saveUI=()=>{ try{ localStorage.setItem(STORE_KEY+'-ui', JSON.stringify(ui)); }catch(e){} };
+
+/* sync with the artifact database */
+let docRef=null, synced=false, writing=false, dirty=false, pendingWrite=false;
+function commit(quiet){
+  state.updatedAt = Date.now();
+  trim(); saveLocal(); dirty=true; flush(); if(!quiet) render();
+}
+async function flush(){
+  if(!docRef || !dirty) return;
+  if(writing){ pendingWrite=true; return; }
+  writing=true; dirty=false;
+  try{ await docRef.set(JSON.parse(JSON.stringify(state))); synced=true; }
+  catch(e){ synced=false; dirty=true; }
+  writing=false; renderSync();
+  if(pendingWrite){ pendingWrite=false; flush(); }
+}
+function trim(){
+  const cutoff = Date.now()-45*DAY;
+  state.logs = state.logs.filter(l=>l.at>cutoff).sort((a,b)=>a.at-b.at).slice(-900);
+}
+(async()=>{
+  if(!window.claude || !window.claude.use) return;
+  let db=null; try{ db = await window.claude.use('db'); }catch(e){}
+  if(!db) return;
+  try{ docRef = db.doc('home/state'); }catch(e){ return; }
+  docRef.onSnapshot(snap=>{
+    synced=true;
+    if(snap.exists){
+      if(!dirty && !writing){
+        const remote = normalize(snap.data());
+        if((remote.updatedAt||0) >= (state.updatedAt||0) || !state.updatedAt){ state = remote; saveLocal(); render(); return; }
+        dirty=true; flush();
+      }
+    } else if(state.updatedAt){ dirty=true; flush(); }
+    renderSync();
+  }, ()=>{ synced=false; renderSync(); });
+})();
+
+/* ---------- time helpers ---------- */
+const pad2=n=>String(n).padStart(2,'0');
+const dayKey=t=>{const d=new Date(t);return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());};
+const startOfDay=t=>{const d=new Date(t);d.setHours(0,0,0,0);return d.getTime();};
+const hm=t=>{const d=new Date(t);return pad2(d.getHours())+':'+pad2(d.getMinutes());};
+function ago(t){const m=Math.round((Date.now()-t)/MIN); if(m<1)return 'только что'; if(m<60)return m+' мин назад'; const h=Math.floor(m/60); if(h<24)return h+' ч '+(m%60?m%60+' мин ':'')+'назад'; const d=Math.floor(h/24); return d+' '+plural(d,'день','дня','дней')+' назад';}
+function plural(n,a,b,c){n=Math.abs(n)%100;const n1=n%10;if(n>10&&n<20)return c;if(n1>1&&n1<5)return b;if(n1===1)return a;return c;}
+const MONTHS=['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+function dateLabel(key){const [y,m,d]=key.split('-').map(Number);const t=new Date(y,m-1,d).getTime();const diff=Math.round((t-startOfDay(Date.now()))/DAY);
+  if(diff===0)return 'сегодня'; if(diff===1)return 'завтра'; if(diff===-1)return 'вчера';
+  return d+' '+MONTHS[m-1]+(y!==new Date().getFullYear()?' '+y:'');}
+function addDays(key,n){const [y,m,d]=key.split('-').map(Number);return dayKey(new Date(y,m-1,d+n).getTime());}
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+
+/* ---------- derived ---------- */
+const logsFor=(k,type)=>state.logs.filter(l=>l.pet===k&&(!type||l.type===type));
+const today=(k,type)=>{const s=startOfDay(Date.now());return logsFor(k,type).filter(l=>l.at>=s);};
+const last=(k,type)=>{const a=logsFor(k,type);return a.length?a[a.length-1]:null;};
+const clamp=v=>Math.max(0,Math.min(100,Math.round(v)));
+function overdue(k){const t=dayKey(Date.now());return state.tasks.filter(x=>(x.pet===k||x.pet==='both')&&x.due&&x.due<t);}
+function dueToday(k){const t=dayKey(Date.now());return state.tasks.filter(x=>(x.pet===k||x.pet==='both')&&x.due===t);}
+/* Each gauge: +boost on an action, then drains linearly over time (slower at night). */
+const BOOST = {
+  cat:{feed:['sat',55],play:['joy',40],pet:['joy',12],water:['care',35],litter:['care',40],task:['care',30]},
+  dog:{feed:['sat',55],walk:['joy',50],play:['joy',30],pet:['joy',12],water:['care',45],task:['care',35]}
+};
+const DRAIN = {cat:{sat:100/14,joy:100/16,care:100/30}, dog:{sat:100/14,joy:100/12,care:100/30}}; // points per hour
+function nightFactor(t){ const h=new Date(t).getHours(); return (h>=23||h<7)?.35:1; }
+function drain(v,from,to,rate){ // integrate hour by hour so night drains slower
+  let t=from; while(t<to && v>0){ const step=Math.min(H,to-t); v-=rate*nightFactor(t)*step/H; t+=step; }
+  return Math.max(0,v);
+}
+function gauges(k, now){
+  const p=state.pets[k], kind=p.kind==='dog'?'dog':'cat', B=BOOST[kind], R=DRAIN[kind];
+  const ev=state.logs.filter(l=>l.pet===k&&l.at<=now).sort((a,b)=>a.at-b.at);
+  const g={sat:50,joy:50,care:50}; let t=ev.length?ev[0].at:now;
+  for(const e of ev){
+    for(const key in g) g[key]=drain(g[key],t,e.at,R[key]);
+    t=e.at; const b=B[e.type]; if(!b) continue;
+    let amt=b[1];
+    if(e.type==='feed' && e.grams && p.gramsPerDay){ const portion=p.gramsPerDay/Math.max(1,p.feedsPerDay); amt=Math.max(15,Math.min(100,b[1]*e.grams/portion)); }
+    g[b[0]]=Math.min(100,g[b[0]]+amt);
+  }
+  for(const key in g) g[key]=drain(g[key],t,now,R[key]);
+  return g;
+}
+function stats(k){
+  const now=Date.now(), g=gauges(k,now);
+  const lf=last(k,'feed'), lw=last(k,'water');
+  const waterOld = !lw || now-lw.at>36*H;
+  const sat=clamp(g.sat), joy=clamp(g.joy), care=clamp(g.care-overdue(k).length*20);
+  const mood = sat*.45+joy*.3+care*.25;
+  return {sat,joy,care,mood,lf,lw,waterOld};
+}
+function streak(k){
+  const p=state.pets[k]; let n=0; let d=startOfDay(Date.now());
+  const count=(s)=>state.logs.filter(l=>l.pet===k&&l.type==='feed'&&l.at>=s&&l.at<s+DAY).length;
+  if(count(d)>=p.feedsPerDay) n=1;
+  for(let i=1;i<45;i++){ const s=d-i*DAY; if(count(s)>=p.feedsPerDay) n++; else break; }
+  return n;
+}
+function faceFor(k,st){
+  const hr=new Date().getHours(), p=state.pets[k];
+  const sleeping = hr>=23||hr<7;
+  if(sleeping) return {eyes:'closed',mouth:'normal',sleeping:true,text:'Zzz… сплю'};
+  let text, eyes, mouth;
+  if(st.mood>=65){eyes='happy';mouth='happy';} else if(st.mood>=35){eyes='normal';mouth='normal';} else {eyes='sad';mouth='sad';}
+  const od=overdue(k), dt=dueToday(k);
+  const le=state.logs.filter(l=>l.pet===k).slice(-1)[0];
+  const JUST={feed:'Ням-ням, спасибо!',play:'Ура, играем!',walk:'Гуляем! Гав!',water:'Буль-буль, свежая!',litter:'Спасибо за чистоту',pet:p.kind==='dog'?'Гав-гав! Ещё!':'Мурр-мурр…',task:'Спасибо за заботу!'};
+  if(le && Date.now()-le.at<90e3 && JUST[le.type]) return {eyes:'happy',mouth:'happy',blush:true,text:JUST[le.type]};
+  if(st.sat<25) text = p.kind==='dog'?'Гав! Хочу есть!':'Мяу! Хочу есть!';
+  else if(p.kind==='dog' && st.joy<30) text='Пойдём гулять!';
+  else if(od.length) text='Не забудь: '+od[0].title;
+  else if(dt.length) text='Сегодня: '+dt[0].title;
+  else if(st.waterOld) text='Поменяй мне воду';
+  else if(st.joy<35) text='Поиграй со мной';
+  else if(st.mood>=65) text = p.kind==='dog'?'Гав! Всё отлично':'Мурр, всё отлично';
+  else text='Всё хорошо';
+  return {eyes,mouth,blush:st.mood>=75,tear:st.mood<20,text};
+}
+
+/* ---------- render ---------- */
+const $app=document.getElementById('app'), $layer=document.getElementById('layer');
+let blinkTimer=null;
+function render(){
+  if(sheetOpen) return;
+  document.querySelectorAll('.nav button').forEach(b=>b.setAttribute('aria-current', b.dataset.tab===ui.tab?'page':'false'));
+  const odAll = state.tasks.filter(x=>x.due&&x.due<=dayKey(Date.now())).length;
+  document.getElementById('navdot').innerHTML = odAll?`<span class="dot">${odAll}</span>`:'';
+  if(ui.tab==='pet') renderPet(); else if(ui.tab==='tasks') renderTasks(); else renderSettings();
+}
+function topBar(){
+  return `<div class="top"><div class="brand">${esc(state.pets.toni.name)} и ${esc(state.pets.eirin.name)}</div><div class="sync" id="sync"></div></div>`;
+}
+function renderSync(){
+  const el=document.getElementById('sync'); if(!el) return;
+  el.className='sync'+(synced?' on':'');
+  el.innerHTML = `<i></i>${synced?'Сохранено':'Сохранено на телефоне'}`;
+}
+function petColor(k){return `var(--${k})`;}
+function switcher(){
+  return `<div class="switch">${PETS.map(k=>{const p=state.pets[k], st=stats(k), f=faceFor(k,st);
+    const n=overdue(k).length+dueToday(k).length;
+    return `<button data-pet="${k}" aria-pressed="${ui.pet===k}" style="--pc:${petColor(k)}"><span class="av">${spriteSVG(p,f)}</span><span style="min-width:0"><b>${esc(p.name)}${n?`<span class="dot">${n}</span>`:''}</b><small>${st.lf?'ел '+ago(st.lf.at):'ещё не ел'}</small></span></button>`;}).join('')}</div>`;
+}
+function bar(label,v){const on=Math.round(v/10);return `<div class="stat"><span>${label}</span><div class="bar${v<30?' low':''}">${Array.from({length:10},(_,i)=>`<i class="${i<on?'on':''}"></i>`).join('')}</div></div>`;}
+function renderPet(){
+  const k=ui.pet, p=state.pets[k], st=stats(k), face=faceFor(k,st);
+  const fed=today(k,'feed'), grams=fed.reduce((a,l)=>a+(+l.grams||0),0);
+  const pct=Math.min(100, p.gramsPerDay? grams/p.gramsPerDay*100 : fed.length/p.feedsPerDay*100);
+  const actions = p.kind==='dog'?['feed','walk','play','water']:['feed','play','litter','water'];
+  const walks=today(k,'walk');
+  const yStart=startOfDay(Date.now())-DAY;
+  const recent = logsFor(k).filter(l=>l.at>=yStart&&l.type!=='pet').reverse();
+  const sk=streak(k);
+  const tasks = state.tasks.filter(x=>(x.pet===k||x.pet==='both')&&x.due&&x.due<=addDays(dayKey(Date.now()),7)).sort((a,b)=>a.due<b.due?-1:1);
+  $app.innerHTML = topBar()+switcher()+`
+  <section class="device" style="--pc:${petColor(k)}">
+    <div class="lcd${face.sleeping?' sleep':''}" id="lcd">
+      <div class="bubble">${esc(face.text)}</div>
+      ${face.sleeping?'<div class="zzz">z</div>':''}
+      <div class="sprite" id="sprite">${spriteSVG(p,face)}</div>
+      <div class="meta"><span>${esc(p.name.toUpperCase())}</span><span>${sk?'СЕРИЯ '+sk+' '+plural(sk,'ДЕНЬ','ДНЯ','ДНЕЙ').toUpperCase():''}</span></div>
+    </div>
+    <div class="stats">${bar('Сытость',st.sat)}${bar(p.kind==='dog'?'Прогулки':'Радость',st.joy)}${bar('Уход',st.care)}</div>
+    <div class="pad">${actions.map(a=>`<button data-act="${a}" class="${a==='feed'?'main':''}">${IC[a]}${LABEL[a]}</button>`).join('')}</div>
+    <div class="toast" id="toastslot" role="status"></div>
+  </section>
+  <section class="card" style="--pc:${petColor(k)}">
+    <h2>Еда сегодня <small>норма ${p.feedsPerDay} ${plural(p.feedsPerDay,'раз','раза','раз')}${p.gramsPerDay?' · '+p.gramsPerDay+' г':''}</small></h2>
+    <div class="row"><div class="feedline num">${fed.length} <small>из ${p.feedsPerDay} ${plural(p.feedsPerDay,'кормления','кормлений','кормлений')}</small></div>${p.gramsPerDay?`<div class="num"><b>${grams}</b> <span class="muted">/ ${p.gramsPerDay} г</span></div>`:''}</div>
+    <div class="meter"><i style="width:${pct}%"></i></div>
+    <div class="note">${st.lf?'Последний раз в '+hm(st.lf.at)+', '+ago(st.lf.at):'Сегодня ещё не кормили'}${p.gramsPerDay&&grams<p.gramsPerDay?' · осталось '+(p.gramsPerDay-grams)+' г':''}${p.food?' · '+esc(p.food):''}</div>
+    ${p.kind==='dog'?`<div class="row"><span>Прогулки</span><span class="num"><b>${walks.length}</b> <span class="muted">из ${p.walksPerDay}</span></span></div>`:''}
+  </section>
+  <section class="card" style="--pc:${petColor(k)}">
+    <h2>Ближайшие дела <button class="chip" data-addtask="${k}">+ Добавить</button></h2>
+    ${tasks.length?`<ul class="tasks">${tasks.map(taskRow).join('')}</ul>`:`<div class="empty">На неделю ничего. Все дела во вкладке «Дела».</div>`}
+  </section>
+  <section class="card">
+    <h2>Журнал <small>сегодня и вчера</small></h2>
+    ${recent.length?`<ul class="log">${recent.map(l=>`<li><span class="ic">${IC[l.type]||IC.check}</span><span class="t">${LOGTEXT[l.type]||l.type}${l.grams?` <b class="num">${l.grams} г</b>`:''}</span><time>${l.at<startOfDay(Date.now())?'вчера ':''}${hm(l.at)}</time><button class="x" data-dellog="${l.id}" aria-label="Удалить запись">${IC.x}</button></li>`).join('')}</ul>`:`<div class="empty">Пока пусто. Нажми «Покормил», и запись появится здесь.</div>`}
+  </section>`;
+  renderSync(); paintToast(); scheduleBlink(p,face);
+}
+function scheduleBlink(p,face){
+  clearTimeout(blinkTimer);
+  if(face.sleeping || face.eyes!=='normal') return;
+  blinkTimer=setTimeout(()=>{const s=document.getElementById('sprite'); if(!s) return;
+    s.innerHTML=spriteSVG(p,Object.assign({},face,{eyes:'closed'}));
+    setTimeout(()=>{ if(document.getElementById('sprite')===s) s.innerHTML=spriteSVG(p,face); scheduleBlink(p,face); },160);
+  }, 2500+Math.random()*3000);
+}
+const REPEATS=[[0,'Один раз'],[1,'Каждый день'],[7,'Каждую неделю'],[14,'Каждые 2 недели'],[30,'Каждый месяц'],[90,'Каждые 3 месяца'],[182,'Раз в полгода'],[365,'Раз в год']];
+function repeatText(n){const r=REPEATS.find(x=>x[0]===n); return r?r[1].toLowerCase():'каждые '+n+' '+plural(n,'день','дня','дней');}
+function petTag(pk){ if(pk==='both') return PETS.map(k=>`<span class="tag" style="--pc:${petColor(k)}">${esc(state.pets[k].name)}</span>`).join(''); const p=state.pets[pk]; return p?`<span class="tag" style="--pc:${petColor(pk)}">${esc(p.name)}</span>`:''; }
+function taskRow(t){
+  const tk=dayKey(Date.now()); const over=t.due<tk;
+  return `<li class="task${over?' over':''}"><button class="check" data-done="${t.id}" aria-label="Готово: ${esc(t.title)}">${IC.check}</button>
+  <button class="body" data-edittask="${t.id}"><b>${esc(t.title)}</b><small>${petTag(t.pet)}${over?'просрочено, ':''}${dateLabel(t.due)}${t.time?' в '+esc(t.time):''}${t.every?' · '+repeatText(t.every):''}</small></button></li>`;
+}
+function renderTasks(){
+  const tk=dayKey(Date.now()), wk=addDays(tk,7);
+  const all=[...state.tasks].sort((a,b)=>(a.due||'')<(b.due||'')?-1:1);
+  const groups=[['Просрочено',all.filter(t=>t.due<tk),'warn'],['Сегодня',all.filter(t=>t.due===tk)],['На этой неделе',all.filter(t=>t.due>tk&&t.due<=wk)],['Позже',all.filter(t=>t.due>wk)]];
+  $app.innerHTML = topBar()+`
+  <section class="card">
+    <h2>Дела и напоминания <button class="chip" data-addtask="both">+ Добавить</button></h2>
+    <div class="toast" id="toastslot" role="status"></div>
+    ${all.length? groups.filter(g=>g[1].length).map(g=>`<div class="sec ${g[2]||''}">${g[0]}</div><ul class="tasks">${g[1].map(taskRow).join('')}</ul>`).join('') : `<div class="empty">Дел пока нет. Добавь, например, «Обработка от клещей» раз в месяц.</div>`}
+  </section>
+  <p class="note">Отметь галочкой, когда сделал. Повторяющееся дело само перенесётся на следующий срок. Напоминания видны здесь и на экране питомца; пуш-уведомлений приложение не присылает.</p>`;
+  renderSync();
+}
+function renderSettings(){
+  $app.innerHTML = topBar()+PETS.map(k=>{const p=state.pets[k];return `
+  <section class="card" style="--pc:${petColor(k)}">
+    <h2><span><span class="tag" style="--pc:${petColor(k)}">${p.kind==='dog'?'собака':'кошка'}</span> ${esc(p.name)}</span></h2>
+    <label class="f">Имя<input id="s-${k}-name" data-set="${k}.name" value="${esc(p.name)}"></label>
+    <div class="grid2">
+      <label class="f">Кормлений в день<input id="s-${k}-fpd" type="number" inputmode="numeric" min="1" max="10" data-set="${k}.feedsPerDay" value="${p.feedsPerDay}"></label>
+      <label class="f">Граммов в день<input id="s-${k}-gpd" type="number" inputmode="numeric" min="0" max="5000" data-set="${k}.gramsPerDay" value="${p.gramsPerDay}"></label>
+    </div>
+    ${p.kind==='dog'?`<label class="f">Прогулок в день<input id="s-${k}-wpd" type="number" inputmode="numeric" min="0" max="10" data-set="${k}.walksPerDay" value="${p.walksPerDay}"></label>`:''}
+    <label class="f">Корм<input id="s-${k}-food" data-set="${k}.food" placeholder="например, Royal Canin Sterilised" value="${esc(p.food)}"></label>
+    <div class="f" style="font-size:13px;color:var(--muted);font-weight:500">Окрас на экране
+      <div class="swatches" style="margin-top:6px">${FURS.map(c=>`<button data-fur="${k}" data-c="${c}" aria-pressed="${p.fur===c}" style="background:${c}" aria-label="Окрас ${c}"></button>`).join('')}</div>
+    </div>
+  </section>`;}).join('')+`
+  <section class="card"><h2>Как это работает</h2>
+  <p class="note" style="margin:0">Сытость падает со временем после кормления, радость зависит от игр и прогулок, уход проседает из-за просроченных дел и несвежей воды. Ночью с 23:00 до 7:00 питомцы спят. Данные хранятся только на этом телефоне. Чтобы открыть как приложение, добавь сайт на главный экран: в Safari кнопка «Поделиться», затем «На экран Домой».</p></section>`;
+  renderSync();
+}
+
+/* ---------- sheets ---------- */
+let sheetOpen=false;
+function closeSheet(){ if(!sheetOpen) return; sheetOpen=false; render(); }
+function openSheet(html){ sheetOpen=true; clearTimeout(blinkTimer); $app.innerHTML=topBar()+`<section class="sheet"><div class="in">${html}</div></section>`; renderSync(); window.scrollTo(0,0); const f=$app.querySelector('[autofocus]'); if(f) setTimeout(()=>f.focus(),50); }
+function feedSheet(k){
+  const p=state.pets[k], fed=today(k,'feed'), grams=fed.reduce((a,l)=>a+(+l.grams||0),0);
+  const left=Math.max(0,p.feedsPerDay-fed.length);
+  let portion = p.gramsPerDay? Math.round(left&&p.gramsPerDay>grams ? (p.gramsPerDay-grams)/left : p.gramsPerDay/p.feedsPerDay) : 0;
+  openSheet(`<h3>Покормить: ${esc(p.name)}</h3>
+    <div class="f" style="font-size:13px;color:var(--muted);font-weight:500">Порция, граммы</div>
+    <div class="stepper"><button data-step="-5" aria-label="Меньше">−</button><input id="fd-g" type="number" inputmode="numeric" min="0" value="${portion}"><button data-step="5" aria-label="Больше">+</button></div>
+    ${p.gramsPerDay?`<div class="chips">${[...new Set([Math.round(p.gramsPerDay/p.feedsPerDay),Math.round(p.gramsPerDay/p.feedsPerDay/2),portion].filter(x=>x>0))].sort((a,b)=>a-b).map(g=>`<button class="chip" data-portion="${g}">${g} г</button>`).join('')}</div>`:''}
+    <label class="f">Время<input id="fd-t" type="time" value="${hm(Date.now())}"></label>
+    <button class="btn full" data-feedok="${k}">${IC.check} Записать кормление</button>
+    <button class="btn ghost full" data-close>Отмена</button>`);
+}
+function timeFromInput(v){ if(!v) return Date.now(); const [h,m]=v.split(':').map(Number); const d=new Date(); d.setHours(h,m,0,0); let t=d.getTime(); if(t>Date.now()+5*MIN) t-=DAY; return t; }
+function taskSheet(id, petDefault){
+  const t = id? state.tasks.find(x=>x.id===id) : {title:'',pet:petDefault||'both',due:dayKey(Date.now()),every:0,time:''};
+  if(!t) return;
+  const custom = !REPEATS.some(r=>r[0]===t.every);
+  openSheet(`<h3>${id?'Дело':'Новое дело'}</h3>
+    <label class="f">Что сделать<input id="tk-title" value="${esc(t.title)}" placeholder="Обработка от клещей" ${id?'':'autofocus'}></label>
+    <div class="f" style="font-size:13px;color:var(--muted);font-weight:500">Для кого
+      <div class="chips" style="margin-top:6px" id="tk-pet">${[...PETS,'both'].map(k=>`<button class="chip" data-pickpet="${k}" aria-pressed="${t.pet===k}">${k==='both'?'Оба':esc(state.pets[k].name)}</button>`).join('')}</div></div>
+    <div class="grid2"><label class="f">Когда<input id="tk-due" type="date" value="${esc(t.due)}"></label><label class="f">Время (необяз.)<input id="tk-time" type="time" value="${esc(t.time||'')}"></label></div>
+    <label class="f">Повтор<select id="tk-every">${REPEATS.map(r=>`<option value="${r[0]}" ${r[0]===t.every?'selected':''}>${r[1]}</option>`).join('')}<option value="custom" ${custom?'selected':''}>Свой интервал</option></select></label>
+    <label class="f" id="tk-cwrap" ${custom?'':'hidden'}>Каждые N дней<input id="tk-custom" type="number" inputmode="numeric" min="1" value="${custom?t.every:10}"></label>
+    <button class="btn full" data-savetask="${id||''}">Сохранить</button>
+    ${id?`<button class="btn danger full" data-deltask="${id}">Удалить дело</button>`:''}
+    <button class="btn ghost full" data-close>Отмена</button>`);
+}
+
+/* ---------- toast & hearts ---------- */
+let toastTimer=null, toastData=null;
+function paintToast(){
+  const el=document.getElementById('toastslot'); if(!el) return;
+  if(!toastData){ el.innerHTML=''; return; }
+  el.innerHTML=`<span>${esc(toastData.msg)}</span>${toastData.undo?'<button data-undo>Отменить</button>':''}`;
+}
+function toast(msg, undo){
+  clearTimeout(toastTimer); toastData={msg,undo}; paintToast();
+  toastTimer=setTimeout(()=>{toastData=null; paintToast();},5000);
+}
+function hearts(n){
+  const lcd=document.getElementById('lcd'); if(!lcd) return;
+  for(let i=0;i<n;i++){ const h=document.createElement('div'); h.className='heart'; h.innerHTML=HEART; h.style.left=(35+Math.random()*30)+'%'; h.style.animationDelay=(i*.18)+'s'; lcd.appendChild(h); setTimeout(()=>h.remove(),2000); }
+}
+const GNAME={sat:'сытость',joy:'радость',care:'уход'};
+function addLog(k,type,extra){
+  const e=Object.assign({id:uid(),pet:k,type,at:Date.now()},extra||{});
+  const before=stats(k);
+  state.logs.push(e); commit();
+  const after=stats(k);
+  const gain=['sat','joy','care'].map(g=>[g,after[g]-before[g]]).filter(x=>x[1]>0).map(x=>GNAME[x[0]]+' +'+x[1]).join(', ');
+  hearts(type==='pet'?1:type==='feed'?3:2);
+  if(type==='pet') return;
+  toast(`${state.pets[k].name}: ${LOGTEXT[type].toLowerCase()}${e.grams?' '+e.grams+' г':''}${gain?' · '+gain:''}`, ()=>{ state.logs=state.logs.filter(l=>l.id!==e.id); commit(); });
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',ev=>{
+  const tg = ev.target && ev.target.nodeType===1 ? ev.target : ev.target && ev.target.parentElement; if(!tg) return;
+  if(tg.closest('#sprite')){ const k=ui.pet; if(faceFor(k,stats(k)).sleeping){ toast(state.pets[k].name+' спит, не буди'); return; } addLog(k,'pet'); return; }
+  const b=tg.closest('button'); if(!b) return;
+  const d=b.dataset;
+  if(d.tab){ ui.tab=d.tab; saveUI(); sheetOpen=false; render(); window.scrollTo(0,0); return; }
+  if(d.close!==undefined){ closeSheet(); return; }
+  if(d.undo!==undefined){ const u=toastData&&toastData.undo; clearTimeout(toastTimer); toastData=null; paintToast(); if(u) u(); return; }
+  if(d.pet){ ui.pet=d.pet; saveUI(); render(); return; }
+  if(d.act){ const k=ui.pet; if(d.act==='feed') feedSheet(k); else addLog(k,d.act); return; }
+  if(d.step){ const i=document.getElementById('fd-g'); i.value=Math.max(0,(+i.value||0)+(+d.step)); return; }
+  if(d.portion){ document.getElementById('fd-g').value=d.portion; return; }
+  if(d.feedok){ const g=Math.max(0,Math.round(+document.getElementById('fd-g').value||0)); const at=timeFromInput(document.getElementById('fd-t').value); closeSheet();
+    const ex={at}; if(g) ex.grams=g; addLog(d.feedok,'feed',ex); return; }
+  if(d.dellog){ const e=state.logs.find(l=>l.id===d.dellog); state.logs=state.logs.filter(l=>l.id!==d.dellog); commit(); if(e) toast('Запись удалена',()=>{state.logs.push(e); commit();}); return; }
+  if(d.addtask){ taskSheet(null,d.addtask); return; }
+  if(d.edittask){ taskSheet(d.edittask); return; }
+  if(d.pickpet){ document.querySelectorAll('#tk-pet .chip').forEach(c=>c.setAttribute('aria-pressed', c===b)); return; }
+  if(d.savetask!==undefined){
+    const title=document.getElementById('tk-title').value.trim(); if(!title){ document.getElementById('tk-title').focus(); return; }
+    const pk=(document.querySelector('#tk-pet [aria-pressed="true"]')||{}).dataset?.pickpet||'both';
+    const ev2=document.getElementById('tk-every').value; const every= ev2==='custom'? Math.max(1,+document.getElementById('tk-custom').value||1) : +ev2;
+    const data={title,pet:pk,due:document.getElementById('tk-due').value||dayKey(Date.now()),time:document.getElementById('tk-time').value||'',every};
+    if(d.savetask){ Object.assign(state.tasks.find(x=>x.id===d.savetask)||{},data); } else state.tasks.push(Object.assign({id:uid()},data));
+    closeSheet(); commit(); toast('Дело сохранено'); return; }
+  if(d.deltask){ const t=state.tasks.find(x=>x.id===d.deltask); state.tasks=state.tasks.filter(x=>x.id!==d.deltask); closeSheet(); commit(); if(t) toast('Дело удалено',()=>{state.tasks.push(t);commit();}); return; }
+  if(d.done){ const t=state.tasks.find(x=>x.id===d.done); if(!t) return; const prev=Object.assign({},t);
+    b.classList.add('done');
+    setTimeout(()=>{
+      if(t.every){ t.due=addDays(dayKey(Date.now()),t.every); t.lastDone=Date.now(); }
+      else state.tasks=state.tasks.filter(x=>x.id!==t.id);
+      (t.pet==='both'?PETS:[t.pet]).forEach(k=>{ if(state.pets[k]) state.logs.push({id:uid(),pet:k,type:'task',at:Date.now()}); });
+      commit(); hearts(2);
+      toast(t.every?`Готово. Следующий раз ${dateLabel(t.due)}`:'Готово', ()=>{ const i=state.tasks.findIndex(x=>x.id===prev.id); if(i>=0) state.tasks[i]=prev; else state.tasks.push(prev); commit(); });
+    },180); return; }
+  if(d.fur){ state.pets[d.fur].fur=d.c; commit(); return; }
+});
+document.addEventListener('change',ev=>{
+  const el=ev.target;
+  if(el.id==='tk-every'){ document.getElementById('tk-cwrap').hidden = el.value!=='custom'; return; }
+  if(el.dataset.set){ const [k,f]=el.dataset.set.split('.'); let v=el.value;
+    if(el.type==='number'){ v=Math.max(+el.min||0, Math.min(+el.max||9999, Math.round(+v||0))); if(f==='feedsPerDay') v=Math.max(1,v); }
+    else { v=v.trim(); if(f==='name'&&!v) v=DEFAULTS.pets[k].name; }
+    state.pets[k][f]=v; el.value=v; commit(true); }
+});
+document.addEventListener('keydown',ev=>{ if(ev.key==='Escape') closeSheet(); });
+
+render();
+setInterval(()=>{ if(!sheetOpen && ui.tab!=='settings') render(); }, 60000);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden && !sheetOpen && ui.tab!=='settings') render(); });
+})();
+</script>
+
+<script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));}</script>
+</body>
+</html>
